@@ -29,7 +29,7 @@ public class Main {
 
         System.out.println(hashMap.get(14));
         System.out.println(hashMap.get(22));
-        System.out.println(hashMap.get(54));
+        System.out.println(hashMap.get(87));
 
         hashMap.remove(2);
         hashMap.remove(142);

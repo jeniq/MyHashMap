@@ -154,4 +154,3 @@ public class MyHashMap<K, V> {
 
     }
 }
-// TODO: variable size
