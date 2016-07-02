@@ -1,20 +1,25 @@
 package com.company;
 
 public class MyHashMap<K, V> {
+    private static final int MIN_CAPACITY = 1;
+    private static final int MAX_CAPACITY = Integer.MAX_VALUE;
     private Entry<K, V>[] table;
     private int capacity = 16;
-    private double loadFactor = 0.75;
+    private float loadFactor = 0.75f;
 
     class Entry<K, V>{
-        K key;
-        V value;
-        Entry<K, V> next;
+        private K key;
+        private V value;
+        private int hash;
+        private Entry<K, V> next;
 
-        public Entry(K key, V value, Entry<K, V> next){
+        public Entry(K key, V value, int hash, Entry<K, V> next){
             this.key = key;
             this.value = value;
+            this.hash = hash;
             this.next = next;
         }
+
     }
 
     public MyHashMap(){
@@ -22,6 +27,9 @@ public class MyHashMap<K, V> {
     }
 
     public MyHashMap(int capacity){
+        if (capacity < MIN_CAPACITY || capacity > MAX_CAPACITY){
+            throw new IllegalArgumentException("Wrong capacity!");
+        }
         this.capacity = capacity;
         table = new Entry[capacity];
     }
@@ -30,25 +38,26 @@ public class MyHashMap<K, V> {
         if (newKey == null){
             return;
         }
-        if ((double)size()/capacity > loadFactor){ // set new capacity
-            growCapacity(table, (int)(capacity*loadFactor));
+        if ((float)size()/capacity > loadFactor){ // set new capacity
+            growCapacity();
         }
-        int hash = hash(newKey); // position in table
-        Entry<K, V> newEntry = new Entry<K,V>(newKey, data, null);
+        int hash = hash(newKey);
+        int index = hash % capacity; // position in table
+        Entry<K, V> newEntry = new Entry<K,V>(newKey, data, hash, null);
 
-        if (table[hash] == null){
-            table[hash] = newEntry;
+        if (table[index] == null){
+            table[index] = newEntry;
         }else{
             Entry<K, V> previous = null;
-            Entry<K, V> current = table[hash];
+            Entry<K, V> current = table[index];
 
             while (current != null){
                 if (current.key.equals(newKey)){
-                    if (previous == null){
+                    if (previous == null){ // if first element in bucket
                         newEntry.next = current.next;
-                        table[hash] = newEntry;
+                        table[index] = newEntry;
                         return;
-                    }else{
+                    }else{ // override existing same key
                         newEntry.next = current.next;
                         previous.next = newEntry;
                         return;
@@ -62,11 +71,11 @@ public class MyHashMap<K, V> {
     }
 
     public V get(K key){
-        int hash = hash(key);
-        if (table[hash] == null){
+        int index = hash(key) % capacity;
+        if (table[index] == null){
             return null;
         }else{
-            Entry<K, V> temp = table[hash];
+            Entry<K, V> temp = table[index];
             while (temp != null){
                 if (temp.key.equals(key)){
                     return temp.value;
@@ -78,18 +87,18 @@ public class MyHashMap<K, V> {
     }
 
     public boolean remove(K deleteKey){
-        int hash = hash(deleteKey);
+        int index = hash(deleteKey) % capacity;
 
-        if (table[hash] == null){
+        if (table[index] == null){
             return false;
         }else{
             Entry<K, V> previous = null;
-            Entry<K, V> current = table[hash];
+            Entry<K, V> current = table[index];
 
             while (current != null){
                 if (current.key.equals(deleteKey)){
                     if (previous == null){
-                        table[hash] = table[hash].next;
+                        table[index] = table[index].next;
                         return true;
                     }else{
                         previous.next = current.next;
@@ -103,23 +112,46 @@ public class MyHashMap<K, V> {
         }
     }
 
-    private int hash(K key){
-        return 31 * key.hashCode() % capacity;
-    }
-
-    private int size(){
+    public int size(){
         int size = 0;
-        for (Entry e : table){
+        for (Entry<K, V> e : table){
             if (e != null){
                 size++;
+                Entry<K, V> current = e.next;
+                while (current != null){
+                    current = current.next;
+                    size++;
+                }
             }
         }
         return size;
     }
 
-    private void growCapacity(Entry[] table, int capacity){
+    public int getCapacity() {
+        return capacity;
+    }
+
+    private int hash(K key){
+        return 31 * key.hashCode();
+    }
+
+    private void growCapacity(){
         Entry<K, V>[] temp = table;
+        capacity = capacity + (int)(capacity*loadFactor);
+        System.out.println("Capacity grew");
         table = new Entry[capacity];
-        System.arraycopy(temp, 0, table, 0, temp.length);
+
+        for (Entry<K, V> e : temp){
+            if (e != null) {
+                Entry<K, V> tempEntry = e.next;
+                put(e.key, e.value);
+                while (tempEntry != null) {
+                    put(tempEntry.key, tempEntry.value);
+                    tempEntry = tempEntry.next;
+                }
+            }
+        }
+
     }
 }
+// TODO: variable size
